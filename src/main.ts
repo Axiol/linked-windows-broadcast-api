@@ -1,12 +1,18 @@
 // import type { WindowState } from './types';
-import { v4 as uuidv4 } from 'uuid';
+import {v4 as uuidv4} from 'uuid';
 import {getCurrentWindowCenter, getCurrentWindowState} from "./utils.ts";
-import {BroadcastMessage, OtherWindow, OtherWindowActionType, Coordinates} from "./types.ts";
+import {BroadcastMessage, Coordinates, OtherWindow, OtherWindowActionType, WindowState} from "./types.ts";
 
 const otherWindowList: OtherWindow[] = [];
 
 const id = uuidv4();
 const currentWindowState = getCurrentWindowState();
+
+const canvas = document.getElementById("canvas") as HTMLCanvasElement;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const ctx = canvas.getContext("2d")!;
+const center = getCurrentWindowCenter(currentWindowState);
 
 // Connect to the BroadcastChannel and add the new window to the list.
 const bc= new BroadcastChannel('window-state');
@@ -25,12 +31,24 @@ bc.onmessage = (ev) => {
   // Add a new window to the list.
   if (broadcastMessage.type === OtherWindowActionType.ADD) {
     otherWindowList.push({id: broadcastMessage.id, windowState: broadcastMessage.windowState!});
+    ctx.reset();
+    drawCenteredCircle(ctx, center);
+
+    otherWindowList.forEach((window) => {
+      drawConnectingLine({ctx, hostWindow: currentWindowState, targetWindow: window})
+    })
   }
 
   // Remove a window from the list.
   if (broadcastMessage.type === OtherWindowActionType.REMOVE) {
     const index = otherWindowList.findIndex((window) => window.id === broadcastMessage.id);
     otherWindowList.splice(index, 1);
+    ctx.reset();
+    drawCenteredCircle(ctx, center);
+
+    otherWindowList.forEach((window) => {
+      drawConnectingLine({ctx, hostWindow: currentWindowState, targetWindow: window})
+    })
   }
 
   console.log(otherWindowList)
@@ -47,12 +65,65 @@ const drawCenteredCircle = (ctx: CanvasRenderingContext2D, center: Coordinates) 
   ctx.closePath();
 };
 
+const baseChange = ({
+  currentWindowOffset,
+  targetWindowOffset,
+  targetPosition,
+}: {
+  currentWindowOffset: Coordinates;
+  targetWindowOffset: Coordinates;
+  targetPosition: Coordinates;
+}) => {
+  const monitorCoordinate = {
+    x: targetPosition.x + targetWindowOffset.x,
+    y: targetPosition.y + targetWindowOffset.y,
+  };
+
+  return {
+    x: monitorCoordinate.x - currentWindowOffset.x,
+    y: monitorCoordinate.y - currentWindowOffset.y,
+  };
+};
+
+const drawConnectingLine = ({
+  ctx,
+  hostWindow,
+  targetWindow,
+}: {
+  ctx: CanvasRenderingContext2D;
+  hostWindow: WindowState;
+  targetWindow: OtherWindow;
+}) => {
+  ctx.strokeStyle = "#ff0000";
+  ctx.lineCap = "round";
+  const currentWindowOffset: Coordinates = {
+    x: hostWindow.screenX,
+    y: hostWindow.screenY,
+  };
+  const targetWindowOffset: Coordinates = {
+    x: targetWindow.windowState.screenX,
+    y: targetWindow.windowState.screenY,
+  };
+
+  const origin = getCurrentWindowCenter(hostWindow);
+  const target = getCurrentWindowCenter(targetWindow.windowState);
+
+  const targetWithBaseChange = baseChange({
+    currentWindowOffset,
+    targetWindowOffset,
+    targetPosition: target,
+  });
+
+  ctx.strokeStyle = "#ff0000";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(origin.x, origin.y);
+  ctx.lineTo(targetWithBaseChange.x, targetWithBaseChange.y);
+  ctx.stroke();
+  ctx.closePath();
+};
+
 const main = () => {
-  const canvas = document.getElementById("canvas") as HTMLCanvasElement;
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const ctx = canvas.getContext("2d")!;
-  const center = getCurrentWindowCenter(currentWindowState);
   drawCenteredCircle(ctx, center);
 }
 
