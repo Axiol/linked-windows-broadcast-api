@@ -51,7 +51,6 @@ const main = () => {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement;
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
-  console.log(canvas);
   const ctx = canvas.getContext("2d")!;
   const center = getCurrentWindowCenter(currentWindowState);
   drawCenteredCircle(ctx, center);
