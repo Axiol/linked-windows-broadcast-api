@@ -6,7 +6,7 @@ import {BroadcastMessage, Coordinates, OtherWindow, OtherWindowActionType, Windo
 const otherWindowList: OtherWindow[] = [];
 
 const id = uuidv4();
-const currentWindowState = getCurrentWindowState();
+let currentWindowState = getCurrentWindowState();
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 canvas.width = window.innerWidth;
@@ -25,7 +25,6 @@ window.addEventListener('beforeunload', () => {
 
 // Handle the different actions that can be sent from the other windows.
 bc.onmessage = (ev) => {
-  console.log("Message received in main.ts: ", ev.data);
   const broadcastMessage = ev.data as BroadcastMessage;
 
   // Add a new window to the list.
@@ -42,8 +41,24 @@ bc.onmessage = (ev) => {
     bc.postMessage({type: OtherWindowActionType.ADD, id, windowState: currentWindowState} as BroadcastMessage);
 
     otherWindowList.forEach((window) => {
-      drawConnectingLine({ctx, hostWindow: currentWindowState, targetWindow: window})
-    })
+      drawConnectingLine({ctx, hostWindow: currentWindowState, targetWindow: window});
+    });
+
+    return;
+  }
+
+  // Update the window in the list.
+  if (broadcastMessage.type === OtherWindowActionType.UPDATE) {
+    const index = otherWindowList.findIndex((window) => window.id === broadcastMessage.id);
+    otherWindowList[index].windowState = broadcastMessage.windowState!;
+    ctx.reset();
+    drawCenteredCircle(ctx, center);
+
+    otherWindowList.forEach((window) => {
+      drawConnectingLine({ctx, hostWindow: currentWindowState, targetWindow: window});
+    });
+
+    return;
   }
 
   // Remove a window from the list.
@@ -54,11 +69,11 @@ bc.onmessage = (ev) => {
     drawCenteredCircle(ctx, center);
 
     otherWindowList.forEach((window) => {
-      drawConnectingLine({ctx, hostWindow: currentWindowState, targetWindow: window})
-    })
-  }
+      drawConnectingLine({ctx, hostWindow: currentWindowState, targetWindow: window});
+    });
 
-  console.log(otherWindowList)
+    return;
+  }
 }
 
 // Draw a circle in the center of the screen.
@@ -134,7 +149,8 @@ const main = () => {
   drawCenteredCircle(ctx, center);
 
   setInterval(() => {
-
+    currentWindowState = getCurrentWindowState();
+    bc.postMessage({type: OtherWindowActionType.UPDATE, id, windowState: currentWindowState} as BroadcastMessage);
   }, 100);
 }
 
