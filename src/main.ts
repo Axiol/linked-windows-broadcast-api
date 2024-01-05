@@ -30,9 +30,16 @@ bc.onmessage = (ev) => {
 
   // Add a new window to the list.
   if (broadcastMessage.type === OtherWindowActionType.ADD) {
+    const duplicateWindow = otherWindowList.find((window) => window.id === broadcastMessage.id)
+    if(duplicateWindow) {
+      return;
+    }
+
     otherWindowList.push({id: broadcastMessage.id, windowState: broadcastMessage.windowState!});
     ctx.reset();
     drawCenteredCircle(ctx, center);
+
+    bc.postMessage({type: OtherWindowActionType.ADD, id, windowState: currentWindowState} as BroadcastMessage);
 
     otherWindowList.forEach((window) => {
       drawConnectingLine({ctx, hostWindow: currentWindowState, targetWindow: window})
@@ -125,6 +132,10 @@ const drawConnectingLine = ({
 
 const main = () => {
   drawCenteredCircle(ctx, center);
+
+  setInterval(() => {
+
+  }, 100);
 }
 
 main();
