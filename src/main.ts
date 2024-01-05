@@ -1,4 +1,3 @@
-// import type { WindowState } from './types';
 import {v4 as uuidv4} from 'uuid';
 import {getCurrentWindowCenter, getCurrentWindowState} from "./utils.ts";
 import {BroadcastMessage, Coordinates, OtherWindow, OtherWindowActionType, WindowState} from "./types.ts";
@@ -87,6 +86,7 @@ const drawCenteredCircle = (ctx: CanvasRenderingContext2D, center: Coordinates) 
   ctx.closePath();
 };
 
+// Convert the target window's coordinates to the current window's coordinates.
 const baseChange = ({
   currentWindowOffset,
   targetWindowOffset,
@@ -107,6 +107,7 @@ const baseChange = ({
   };
 };
 
+// Draw a line from the center of the current window to the center of the target window.
 const drawConnectingLine = ({
   ctx,
   hostWindow,
@@ -146,8 +147,6 @@ const drawConnectingLine = ({
 };
 
 const main = () => {
-  drawCenteredCircle(ctx, center);
-
   setInterval(() => {
     currentWindowState = getCurrentWindowState();
     bc.postMessage({type: OtherWindowActionType.UPDATE, id, windowState: currentWindowState} as BroadcastMessage);
